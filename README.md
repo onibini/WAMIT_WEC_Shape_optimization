@@ -1,62 +1,104 @@
-🌊 WEC Shape & Layout Optimization with WAMIT Automation
-This project provides a comprehensive Python framework for the hydrodynamic shape and layout optimization of Point-absorber Wave Energy Converters (WECs). It automates the execution of WAMIT (Potential Flow Solver) and employs metaheuristic algorithms to maximize power capture efficiency while adhering to physical constraints.
+# 🌊 WEC Shape and Layout Optimization using WAMIT Automation
 
-🚀 Key Features
-Hybrid Optimization Algorithms: Includes Differential Evolution (DE), Particle Swarm Optimization (PSO), and a hybrid DEPSO to find global optima in a complex design space.
+This project is a Python-based framework designed for the **hydrodynamic shape and layout optimization** of Point-absorber Wave Energy Converters (WECs). It automates the complex workflow of **WAMIT** (Potential Flow Solver) and utilizes metaheuristic algorithms to maximize energy capture efficiency while strictly adhering to physical and spatial constraints.
 
-Automated WAMIT Workflow: Automatically generates .pot, .frc, .gdf, and .cfg files, executes WAMIT via subprocess, and parses the output .1, .2, .hst files.
+---
 
-Efficiency Engine (Memory Hit): Implements a memory-based caching system that stores previously calculated fitness values to avoid redundant, time-consuming WAMIT simulations.
+## 🚀 Key Features
 
-Constraint Management: Enforces minimum distance checks between WECs and ensures the buoy remains within a predefined grid (STEP_SIZE).
+* **Hybrid Optimization Algorithms**: Provides implementations of Differential Evolution (**DE**), Particle Swarm Optimization (**PSO**), and a hybrid **DEPSO** algorithm to navigate complex design spaces.
+* **Full WAMIT Automation**: Automatically generates all necessary WAMIT input files (`.gdf`, `.pot`, `.frc`, `.cfg`, etc.), executes the solver via subprocess, and parses numerical outputs (`.1`, `.2`, `.hst`, `.4`).
+* **Spectral Energy Analysis**: Evaluates performance in irregular wave environments using the **JONSWAP Spectrum** and Response Amplitude Operators (RAO).
+* **Efficiency Engine (Memory Caching)**: Includes a "Memory Hit" system that stores previously evaluated fitness values for specific coordinates and shapes to avoid redundant, time-consuming WAMIT simulations.
+* **Spatial Constraint Enforcement**: Automatically enforces minimum distance requirements between multiple WECs and maintains design parameters within a defined grid (`STEP_SIZE`).
 
-Spectral Analysis: Calculates annual energy production using the JONSWAP Spectrum and RAO (Response Amplitude Operator).
+---
 
-🛠 Project Structure
+## 📂 Project Structure
+
+The project is organized into modular components to separate optimization logic from hydrodynamic calculations:
+
+```text
 .
-├── main.py                # Entry point for starting the optimization
-├── config.py              # Environment (Hs, Tp, h), Bounds, and Hyperparameters
-├── objective_functions.py # Interface between optimizers and WAMIT
-├── wamit_utils.py         # WAMIT I/O, JONSWAP, and Power calculation logic
-├── utils.py               # Logging, grid generation, and file management
+├── main.py                # Entry point for starting the optimization process
+├── config.py              # Environmental data, physical bounds, and hyperparameters
+├── objective_functions.py # Interface between the optimizers and the WAMIT solver
+├── wamit_utils.py         # WAMIT I/O management, JONSWAP spectrum, and power logic
+├── utils.py               # Logging, grid generation, and result management
 └── optimizers/            # Metaheuristic algorithm implementations
-    ├── __init__.py        # Package level exports
     ├── DE.py              # Differential Evolution
     ├── PSO.py              # Particle Swarm Optimization
     └── DEPSO.py            # Hybrid DE-PSO Algorithm
 
-📐 Methodology
-1. Design Variables (8-Dimensions)
-  The optimization vector includes the layout coordinates of three WECs (assuming symmetry) and the buoy dimensions:
-    Position: $(x_1, y_1), (x_2, y_2), (x_3, y_3)$
-    Geometry: Diameter ($d$) and Draft ($D$)
-2.Hydrodynamic Power Calculation
-  The objective function maximizes the total power absorbed across a frequency range:
-    $$P_{avg} = \int_{0}^{\infty} S_{\eta}(\omega) \cdot \bar{P}(\omega) d\omega$$
-  Where $\bar{P}(\omega)$ is derived from the RAO and the optimized PTO damping matrix.
+```
 
-💻 Getting Started
-Prerequisites
-  WAMIT v7.x or higher (must be installed and wamit.exe accessible).
+---
 
-  Python 3.8+ with following packages:
+## 📐 Methodology
 
-Configuration
-Edit config.py to set your target location (e.g., Incheon, Buan) and physical bounds:
+### 1. Design Variables (8-Dimensions)
 
-  # config.py
-  CURRENT_LOC = "Buan"
-  BOUNDS = {'x1': [3, 15], ... , 'D': [1, 5]}
-  MAX_ITER = 100
+The framework optimizes an 8-dimensional vector representing both the arrangement and the physical dimensions of the WECs:
 
-Running the Optimization
-Execute the main script to start the process:
+* **Layout**: Planar coordinates for three WECs (assuming symmetry): .
+* **Geometry**: Buoy diameter () and draft ().
 
-  python main.py
+### 2. Performance Evaluation
 
-📊 Result Management
-The system generates two primary result files for each run:
+The objective function (`shape_opt_func`) follows an automated loop:
 
-  1. {Location}_cal.res: Detailed log of every unique WAMIT evaluation (parameters + power).
+1. **Input Generation**: Design variables are used to create WAMIT geometry and force files.
+2. **Simulation**: `wamit.exe` is executed in a dedicated directory.
+3. **Parsing**: Hydrodynamic coefficients (added mass, damping, wave excitation force) are extracted from output files.
+4. **Power Calculation**: Total power is calculated by integrating the response spectrum (RAO + JONSWAP) across a defined frequency range.
 
-  2. {Location}_iter.res: Best fitness achieved at each iteration to track convergence.
+---
+
+## 💻 Getting Started
+
+### Prerequisites
+
+* **WAMIT v7.x** or higher (must be installed, and `wamit.exe` must be accessible).
+* **Python 3.8+** with the following dependencies:
+```bash
+pip install numpy pandas scipy psutil
+
+```
+
+
+
+### Configuration
+
+You can select pre-defined environmental data (Buan, Chilbaldo, Yeongilmanhang) and set physical constraints in `config.py`:
+
+```python
+# config.py
+CURRENT_LOC = "Buan"  # Selected location for Hs, Tp, and depth
+BOUNDS = {'x1': [3, 15], ... , 'D': [1, 5]}  # Search space boundaries
+MAX_ITER = 100  # Maximum optimization iterations
+
+```
+
+### Execution
+
+Run the optimization process using:
+
+```bash
+python main.py
+
+```
+
+---
+
+## 📊 Result Management
+
+Upon completion, the system generates two distinct result files categorized by location:
+
+* **`{Location}_cal.res`**: A detailed log of every unique WAMIT evaluation, including design parameters and specific power output for each WEC.
+* **`{Location}_iter.res`**: A history of the best fitness (global best) achieved at each iteration to track algorithm convergence.
+
+---
+
+## 📝 License
+
+This project is developed for research purposes in Wave Energy Converter design and optimization.
